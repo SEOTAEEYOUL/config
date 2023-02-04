@@ -1,0 +1,76 @@
+server:
+  port: 8072
+
+logstash.host: 3.136.161.26:5000
+ 
+logging: 
+  config: classpath:logback-delayed.xml
+ 
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+      defaultZone: http://eurekaserver:8070/eureka/
+      # defaultZone: http://localhost:8070/eureka/
+      
+ 
+spring:
+  zipkin:
+    baseUrl: http://zipkin:9411
+  sleuth:
+    sampler:
+      percentage: 1
+  cloud:
+    loadbalancer.ribbon.enabled: false
+    gateway:
+      discovery.locator: # Service Discovery 에 등록된 Service 를 기반으로 Gateway 경ㅇ로가 생성되도록 설정
+        enabled: true
+        lowerCaseServiceId: true
+      routes:
+      - id: organization-service
+        uri: lb://organization-service
+        # uri: http://localhost:9001/
+        # uri: http://organization-service:8081/
+        predicates:
+        - Path=/organization/**
+        - Cookie=mycookie,mycookievalue
+        filters: # 응답을 보내기 전이나 후에 요청 또는 응답을 수정하고자 스프링 web.filters 들을 필터링함
+        - RewritePath=/organization/(?<path>.*), /$\{path} # 매개변수 및 교체 순서(replacement order) 로 경로 정규식(path regexp) 을 받아 요청 경로를 /orgamization/** 에서 /** 로 변경
+        - RemoveRequestHeader= Cookie,Set-Cookie
+      - id: licensing-service
+        uri: lb://licensing-service
+        # uri: http://localhost:8080/
+        predicates:
+        - Path=/license/**
+        filters:
+        - RewritePath=/license/(?<path>.*), /$\{path}
+        - RemoveRequestHeader= Cookie,Set-Cookie
+      - id: google
+        uri: http://google.com
+        predicates:
+          - Path=/google/{param}
+        filters:
+          - RewritePath=/google(?<segment>/?.*),/search
+          - AddRequestParameter=q,{param}
+      - id: naver
+        uri: http://search.naver.com
+        predicates:
+          - Path=/naver/{param}
+        filters:
+          - name: RewritePath
+            args:
+              regexp: /naver(?<segment>/?.*)
+              replacement: /search.naver
+          - name: AddRequestParameter
+            args:
+              name: query
+              value: '{param}'
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"

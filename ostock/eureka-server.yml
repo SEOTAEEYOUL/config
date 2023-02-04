@@ -1,0 +1,30 @@
+# example:
+#   property: I AM THE DEFAULT
+
+spring:
+  application:
+    name: eurekaserver
+  boot:
+    admin:
+      context-path: /admin
+server:
+  port: 8070
+eureka:
+  instance:
+    hostname: eurekaserver
+    # hostname: localhost
+    preferIpAddress: true
+  client:
+    registreWithEureka: false
+    fetchRegistry: false
+    serviceUrl:
+      defaultZone:
+        http://${eureka.instance.hostname}:${server.port}/eureka/
+  server:
+    waitTimeInMsWhenSyncEmpty: 30
+  
+  management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
